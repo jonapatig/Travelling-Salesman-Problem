@@ -29,10 +29,10 @@ distance_grid = temp2
 #DECLARING CRUCIAL INITIAL VALUES. CAN BE EDITED TO ALTER PROGRAM
 ###############################################################################
 popSize = 100 #declare the initial size of the population
-mutation_rate = 20 #declare a % integer (20 --> 20% likelihood to mutate per city in tour)
+initial_mutation_rate = 0.001 #declare a % (0.2 --> 20% likelihood to mutate per city in tour)
 population = []
 lengths, fitnesses = [], []
-termination_condition = 20
+termination_condition = 1000
 bestEver = 999999999
 
 ################################################################################
@@ -51,7 +51,7 @@ def generate_population(popSize, where):
 
 #Determine total lengths and fitnesses of all tours in the population
 def determine_lengths(generation):
-    global lengths, fitnesses, bestEver
+    global lengths, fitnesses, bestEver, bestEverChanged, bestTour, bestEverTour
     lengths, fitnesses = [], []
     for tour in generation:
         length = 0
@@ -64,9 +64,10 @@ def determine_lengths(generation):
     for i in lengths:
         fitnesses.append(1/i*i)
     best = min(lengths)
+    bestTour = population[lengths.index(min(lengths))]
     if best < bestEver:
         bestEver = best
-
+        bestEverTour = bestTour.copy()
 
 #Roulette Wheel Selection
 def roulette_wheel_selection(group,number):
@@ -85,7 +86,7 @@ def roulette_wheel_selection(group,number):
 #Mutation
 def mutate(tour, rate):
     for i in range(0,len(tour)):
-        if random.randint(0,100) <= rate:
+        if random.random() <= rate:
             spot = random.randint(0,2)
             if not i+spot >= len(tour):
                 temp = tour[i]
@@ -118,34 +119,62 @@ def cycle_crossover(parent1, parent2):
             offspring1[i] = parent1[i]
     return offspring1
 
+#Applies the previous functions to combine selection, mutation and crossover to create a new generation
 def generate_new_generation(old_generation):
     global population
     new_population = []
-    for i in population:
+    for i in range(0, len(population)-1):
         parents = []
         selected = roulette_wheel_selection(old_generation, 2)
         mutated_parent1 = mutate(selected[0], mutation_rate)
         mutated_parent2 = mutate(selected[1], mutation_rate)
         new_population.append(cycle_crossover(mutated_parent1, mutated_parent2))
+    #The line below always carries over the best tour in order to give a chance at regathering lost progress (elitism)
+    new_population.append(population[lengths.index(min(lengths))])
     population = new_population.copy()
+
 ################################################################################
 #ACTUALLY RUNNING THE GENETIC ALGORITHM
 ###############################################################################
 generate_population(popSize, population)
-# determine_lengths(population)
-# generate_new_generation(population)
-
 no_change = 0
+mutation_rate = initial_mutation_rate
+
 while no_change < termination_condition:
+    lastBestEver = bestEver
     determine_lengths(population)
+
+    #Plot the best and best ever tour, as well as printing some information each generation.
+    #The entire block below can be commented out to increase efficiency
+#******************************************************************************#
+    Xgood, Ygood, Xbest, Ybest = [],[],[],[]
+    for k in bestTour:
+        Xgood.append(X[names.index(k)])
+        Ygood.append(Y[names.index(k)])
+    Xgood.append(X[names.index(bestTour[0])])
+    Ygood.append(Y[names.index(bestTour[0])])
+    for k in bestEverTour:
+        Xbest.append(X[names.index(k)])
+        Ybest.append(Y[names.index(k)])
+    Xbest.append(X[names.index(bestEverTour[0])])
+    Ybest.append(Y[names.index(bestEverTour[0])])
+    plt.plot(Xgood,Ygood)
+    plt.plot(Xbest,Ybest)
+    plt.scatter(X,Y)
+    plt.pause(0.0000001)
+    plt.clf()
+    print("\nCurrent Length:", bestEver)
+    print("Termination condition completion:", no_change*100/termination_condition,"%")
+#******************************************************************************#
+
     generate_new_generation(population)
-    print(bestEver)
-
-
-
-#Keep best for next generation(elitism)
-
-################################################################################
-#To do:
-#-Do all the calculations, find the optimal order of names
-#-Use index of names to draw lines and labels on the plot
+    if bestEver == lastBestEver:
+        no_change += 1
+    else:
+        no_change = 0
+    #At 90% toward the termination condition, the program brings the mutation rate to 100% in order to give a shot in the dark, incase the current best is a very low local maxima
+    if no_change >= int(9*termination_condition/10):
+        mutation_rate = 1
+    else:
+        if not mutation_rate == initial_mutation_rate:
+            mutation_rate = initial_mutation_rate
