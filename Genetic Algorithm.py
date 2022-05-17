@@ -87,36 +87,37 @@ def roulette_wheel_selection(group,number):
 def mutate(tour, rate):
     for i in range(0,len(tour)):
         if random.random() <= rate:
-            spot = random.randint(0,2)
-            if not i+spot >= len(tour):
+            if not i+1 >= len(tour):
                 temp = tour[i]
-                tour[i] = tour[i+spot]
-                tour[i+spot] = temp
+                tour[i] = tour[i+1]
+                tour[i+1] = temp
             else:
                 temp = tour[i]
-                tour[i] = tour[i-spot]
-                tour[i-spot] = temp
+                tour[i] = tour[i-1]
+                tour[i-1] = temp
     return tour
 
 #Cycle Crossover
 def cycle_crossover(parent1, parent2):
-    offspring1 = ['x' for i in range(0,len(parent1))]
-    #First parent cycle
-    start = 0
-    marked1 = [parent1[0]]
-    if not parent2.index(parent1[0]) == parent1.index(parent1[0]):
-        current = parent1[parent2.index(parent1[0])]
-        while not current == parent1[0]:
-            marked1.append(current)
-            current = parent1[parent2.index(current)]
-    for k in range(0, len(marked1)):
-        if not k == len(marked1)-1:
-            offspring1[parent1.index(marked1[k])] = parent1[parent1.index(marked1[k+1])]
-        else:
-            offspring1[parent1.index(marked1[k])] = parent1[parent1.index(marked1[0])]
-    for i in range(0,len(offspring1)):
-        if offspring1[i] == 'x':
-            offspring1[i] = parent1[i]
+    offspring1 = parent1
+    if not mutation_rate == 1:
+        offspring1 = ['x' for i in range(0,len(parent1))]
+        #First parent cycle
+        start = 0
+        marked1 = [parent1[0]]
+        if not parent2.index(parent1[0]) == parent1.index(parent1[0]):
+            current = parent1[parent2.index(parent1[0])]
+            while not current == parent1[0]:
+                marked1.append(current)
+                current = parent1[parent2.index(current)]
+        for k in range(0, len(marked1)):
+            if not k == len(marked1)-1:
+                offspring1[parent1.index(marked1[k])] = parent1[parent1.index(marked1[k+1])]
+            else:
+                offspring1[parent1.index(marked1[k])] = parent1[parent1.index(marked1[0])]
+        for i in range(0,len(offspring1)):
+            if offspring1[i] == 'x':
+                offspring1[i] = parent1[i]
     return offspring1
 
 #Applies the previous functions to combine selection, mutation and crossover to create a new generation
@@ -139,8 +140,10 @@ def generate_new_generation(old_generation):
 generate_population(popSize, population)
 no_change = 0
 mutation_rate = initial_mutation_rate
+plt.rcParams['toolbar'] = 'None'
+plt.scatter(X,Y)
 
-while no_change < termination_condition:
+while no_change <= termination_condition:
     lastBestEver = bestEver
     determine_lengths(population)
 
@@ -160,11 +163,11 @@ while no_change < termination_condition:
     Ybest.append(Y[names.index(bestEverTour[0])])
     plt.plot(Xgood,Ygood)
     plt.plot(Xbest,Ybest)
-    plt.scatter(X,Y)
+    plt.axis('off')
     plt.pause(0.0000001)
     plt.clf()
     print("\nCurrent Length:", bestEver)
-    print("Termination condition completion:", no_change*100/termination_condition,"%")
+    print("Termination condition completion:", round(no_change*100/termination_condition, 2),"%")
 #******************************************************************************#
 
     generate_new_generation(population)
